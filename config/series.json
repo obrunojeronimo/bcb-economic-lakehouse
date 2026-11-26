@@ -1,0 +1,35 @@
+{
+    "data_inicial": "01/01/2020",
+    "series": [
+        {
+            "codigo": 432,
+            "nome": "meta_selic",
+            "frequencia": "diaria",
+            "unidade": "% a.a."
+        },
+        {
+            "codigo": 433,
+            "nome": "ipca",
+            "frequencia": "mensal",
+            "unidade": "% a.m."
+        },
+        {
+            "codigo": 1,
+            "nome": "dolar",
+            "frequencia": "diaria",
+            "unidade": "BRL/USD"
+        },
+        {
+            "codigo": 4390,
+            "nome": "selic_mensal",
+            "frequencia": "mensal",
+            "unidade": "% a.m."
+        },
+        {
+            "codigo": 13522,
+            "nome": "ipca_12_meses",
+            "frequencia": "mensal",
+            "unidade": "%"
+        }
+    ]
+}
