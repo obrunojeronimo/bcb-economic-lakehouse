@@ -118,6 +118,26 @@ Detalhes e escopo das medições: [relatório de execução](docs/execution_repo
 
 As consultas Gold estão em [indicadores econômicos](sql/economic_indicators.sql); verificações sobre as seis tabelas estão em [qualidade de dados](sql/data_quality.sql). O dashboard **Brazil Economic Monitor** possui duas páginas: **Economic Overview** e **Data Quality**. A definição exportável está em [brazil_economic_monitor.lvdash.json](dashboards/brazil_economic_monitor.lvdash.json). Para validá-lo e implantá-lo no perfil `DEFAULT`, execute `python dashboards/deploy_dashboard.py`; o script usa um SQL Warehouse serverless `2X-Small` já existente, valida as 15 consultas dos arquivos SQL e os nove datasets do dashboard e cria ou atualiza um rascunho. Use `--validate-only` para executar apenas a validação. Consulte o [guia de implantação](docs/dashboard_setup.md) para requisitos e limitações. A URL é impressa ao final; identificadores do workspace não são armazenados no repositório.
 
+
+## Dashboard - Brazil Economic Monitor
+
+Dashboard desenvolvido nativamente no Databricks AI/BI,
+consumindo as tabelas da arquitetura Medalhão.
+
+### Economic Overview
+
+Acompanhamento dos principais indicadores macroeconômicos
+brasileiros, incluindo Selic, IPCA e câmbio.
+
+![Economic Overview](docs/dashboard_economic.png)
+
+### Data Quality
+
+Monitoramento da qualidade, volumetria, integridade
+e atualização dos dados processados pelo pipeline.
+
+![Data Quality](docs/dashboard_quality.png)
+
 ## Limitações
 
 - A atualização é Full Refresh com sobrescrita e requer acesso à API e ao Databricks; o custo e a latência crescem com o histórico.
