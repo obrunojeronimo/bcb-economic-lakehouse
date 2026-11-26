@@ -1,70 +1,44 @@
+"""Agregações econômicas e publicação das três tabelas Gold."""
 
-from connection import get_spark
+from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 from pyspark.sql.window import Window
 
+from .connection import get_spark
 
-def executar_gold(spark):
 
+def executar_gold(spark: SparkSession) -> None:
+    """Consolida indicadores mensais, recentes e features sem mudar os schemas."""
     print("Iniciando camada Gold...")
 
-    spark.sql("""
+    _ = spark.sql("""
         CREATE SCHEMA IF NOT EXISTS
         workspace.bcb_gold
     """)
 
-    silver = spark.table(
-        "workspace.bcb_silver.economic_indicators"
-    )
+    silver = spark.table("workspace.bcb_silver.economic_indicators")
 
     # 1. Consolidacao mensal dos indicadores
 
     mensal = (
-        silver
-        .withColumn(
-            "mes",
-            F.trunc("data", "month")
-        )
-        .groupBy(
-            "mes",
-            "codigo_serie",
-            "indicador",
-            "unidade",
-            "frequencia"
-        )
+        silver.withColumn("mes", F.trunc("data", "month"))
+        .groupBy("mes", "codigo_serie", "indicador", "unidade", "frequencia")
         .agg(
-            F.round(
-                F.avg("valor"), 6
-            ).alias("valor_medio"),
-
+            F.round(F.avg("valor"), 6).alias("valor_medio"),
             F.min("valor").alias("valor_minimo"),
-
             F.max("valor").alias("valor_maximo"),
-
-            F.max_by(
-                "valor", "data"
-            ).alias("ultimo_valor"),
-
+            F.max_by("valor", "data").alias("ultimo_valor"),
             F.max("data").alias("ultima_observacao"),
-
-            F.count("*").alias("observacoes")
+            F.count("*").alias("observacoes"),
         )
     )
 
     # 2. Ultima observacao de cada indicador
 
-    janela = (
-        Window
-        .partitionBy("codigo_serie")
-        .orderBy(F.col("data").desc())
-    )
+    janela = Window.partitionBy("codigo_serie").orderBy(F.col("data").desc())
 
     recentes = (
-        silver
-        .withColumn(
-            "rn",
-            F.row_number().over(janela)
-        )
+        silver.withColumn("rn", F.row_number().over(janela))
         .filter(F.col("rn") == 1)
         .drop("rn")
     )
@@ -72,45 +46,23 @@ def executar_gold(spark):
     # 3. Base mensal para analises estatisticas
 
     features = (
-        mensal
-        .groupBy("mes")
+        mensal.groupBy("mes")
         .agg(
-
-            F.max(
-                F.when(
-                    F.col("codigo_serie") == 432,
-                    F.col("ultimo_valor")
-                )
-            ).alias("meta_selic"),
-
-            F.max(
-                F.when(
-                    F.col("codigo_serie") == 433,
-                    F.col("ultimo_valor")
-                )
-            ).alias("ipca_mensal"),
-
-            F.max(
-                F.when(
-                    F.col("codigo_serie") == 1,
-                    F.col("valor_medio")
-                )
-            ).alias("dolar_medio"),
-
-            F.max(
-                F.when(
-                    F.col("codigo_serie") == 4390,
-                    F.col("ultimo_valor")
-                )
-            ).alias("selic_mensal"),
-
-            F.max(
-                F.when(
-                    F.col("codigo_serie") == 13522,
-                    F.col("ultimo_valor")
-                )
-            ).alias("ipca_12_meses")
-
+            F.max(F.when(F.col("codigo_serie") == 432, F.col("ultimo_valor"))).alias(
+                "meta_selic"
+            ),
+            F.max(F.when(F.col("codigo_serie") == 433, F.col("ultimo_valor"))).alias(
+                "ipca_mensal"
+            ),
+            F.max(F.when(F.col("codigo_serie") == 1, F.col("valor_medio"))).alias(
+                "dolar_medio"
+            ),
+            F.max(F.when(F.col("codigo_serie") == 4390, F.col("ultimo_valor"))).alias(
+                "selic_mensal"
+            ),
+            F.max(F.when(F.col("codigo_serie") == 13522, F.col("ultimo_valor"))).alias(
+                "ipca_12_meses"
+            ),
         )
         .withColumn("ano", F.year("mes"))
         .withColumn("mes_numero", F.month("mes"))
@@ -121,50 +73,35 @@ def executar_gold(spark):
     tabelas = {
         "monthly_indicators": mensal,
         "latest_indicators": recentes,
-        "economic_features": features
+        "economic_features": features,
     }
 
     for nome, dataframe in tabelas.items():
-
         destino = f"workspace.bcb_gold.{nome}"
 
-        (
-            dataframe.write
-            .format("delta")
-            .mode("overwrite")
-            .saveAsTable(destino)
-        )
+        (dataframe.write.format("delta").mode("overwrite").saveAsTable(destino))
 
-        print(
-            f"{nome}: "
-            f"{spark.table(destino).count()} registros"
-        )
+        print(f"{nome}: {spark.table(destino).count()} registros")
 
     # 5. Validacao dos resultados
 
     print("\nULTIMOS INDICADORES ECONOMICOS")
 
-    recentes.select(
-        "indicador",
-        "data",
-        "valor",
-        "unidade"
-    ).orderBy("indicador").show(truncate=False)
+    recentes.select("indicador", "data", "valor", "unidade").orderBy("indicador").show(
+        truncate=False
+    )
 
     print("\nBASE MENSAL PARA CIENCIA DE DADOS")
 
-    features.orderBy(
-        F.col("mes").desc()
-    ).show(10, truncate=False)
+    features.orderBy(F.col("mes").desc()).show(10, truncate=False)
 
     print("\nCamada Gold concluida!")
 
 
 if __name__ == "__main__":
-
-    spark = get_spark()
+    spark_session = get_spark()
 
     try:
-        executar_gold(spark)
+        executar_gold(spark_session)
     finally:
-        spark.stop()
+        spark_session.stop()

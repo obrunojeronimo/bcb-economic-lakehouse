@@ -6,10 +6,10 @@ A estrutura `serialized_dashboard` e o fluxo de criação seguem a [documentaç�
 
 ## Preparação
 
-1. Execute o pipeline para disponibilizar as seis tabelas e configure o perfil local `DEFAULT` para o workspace desejado. Instale `requirements.txt` em um ambiente virtual.
+1. Execute `python -m src.pipeline` para disponibilizar as seis tabelas e configure o perfil local `DEFAULT` para o workspace desejado. Instale `requirements.txt` em um ambiente virtual.
 2. Confirme que o workspace oferece um SQL Warehouse serverless `2X-Small` e permissão de leitura em `workspace.bcb_bronze`, `workspace.bcb_silver` e `workspace.bcb_gold`.
-3. Valide sem modificar o workspace: `python dashboards/deploy_dashboard.py --validate-only`.
-4. Crie ou atualize o rascunho: `python dashboards/deploy_dashboard.py`. O script imprime a URL no formato `/sql/dashboardsv3/<id>`; guarde-a fora do repositório. A execução repetida atualiza o dashboard de mesmo nome, em vez de duplicá-lo.
+3. Valide sem modificar o workspace: `python -m dashboards.deploy_dashboard --validate-only`.
+4. Crie ou atualize o rascunho: `python -m dashboards.deploy_dashboard`. O script imprime a URL no formato `/sql/dashboardsv3/<id>`; guarde-a fora do repositório. A execução repetida atualiza o dashboard de mesmo nome, em vez de duplicá-lo.
 
 ## Página Economic Overview
 

@@ -18,7 +18,7 @@ As seis tabelas são Delta no catálogo `workspace`, em três esquemas. O pipeli
 
 ## Testes e observabilidade
 
-Quatro testes unitários simulam a sessão HTTP e cobrem configuração e casos básicos da extração. Eles rodam sem Databricks e sem chamada real à API. Não há testes automatizados de integração para Bronze, Silver, Gold, permissões, esquema ou reconciliação ponta a ponta. O pipeline registra duração por etapa e total; Silver imprime contagens de válidos, rejeitados e duplicidades. Esses números são diagnóstico de uma execução, sem armazenamento histórico de métricas. As consultas em `sql/data_quality.sql` são verificações manuais adicionais, não gates automáticos.
+Quatro testes unitários simulam a sessão HTTP e cobrem configuração e casos básicos da extração. Dois testes adicionais simulam a sessão Spark para verificar a ordem da orquestração e o encerramento após falha. Os seis testes rodam sem Databricks e sem chamada real à API. Não há testes automatizados de integração para Bronze, Silver, Gold, permissões, esquema ou reconciliação ponta a ponta. O pipeline registra duração por etapa e total; Silver imprime contagens de válidos, rejeitados e duplicidades. Esses números são diagnóstico de uma execução, sem armazenamento histórico de métricas. As consultas em `sql/data_quality.sql` são verificações manuais adicionais, não gates automáticos.
 
 ## Interpretação dos indicadores
 

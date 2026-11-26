@@ -31,7 +31,7 @@ A soma das três etapas é 25,27 s; a diferença de 1,69 s em relação ao total
 
 ## Testes
 
-Na validação informada em 26/11/2026, **4 testes unitários** foram aprovados. Nesta revisão local, `python -m pytest -q` retornou **4 passed in 0.15s** com Python 3.12.16. `tests/test_extract.py` usa mocks de HTTP; não exercita a API real, o Databricks ou as transformações das três camadas. A execução do pipeline no workspace fornece evidência de integração operacional naquela data, mas não substitui testes de integração automatizados.
+Na validação operacional informada em 26/11/2026, **4 testes unitários** foram aprovados. Na revisão para v1.0.0, foram acrescentados dois testes de orquestração; a suíte local passou com **6 testes** em Python 3.12.16. `tests/test_extract.py` usa dublês HTTP tipados e `tests/test_pipeline.py` usa uma sessão Spark simulada; nenhum deles exercita a API real, o Databricks ou as transformações das três camadas. A execução do pipeline no workspace fornece evidência de integração operacional naquela data, mas não substitui testes de integração automatizados.
 
 ## Restrições da leitura
 

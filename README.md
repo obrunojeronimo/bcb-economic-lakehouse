@@ -10,8 +10,10 @@ Pipeline de engenharia de dados que coleta cinco séries reais do [Sistema Geren
 - [Fontes e tecnologias](#fontes-e-tecnologias)
 - [Estrutura](#estrutura)
 - [Instalação e reprodução](#instalação-e-reprodução)
+- [Qualidade de código](#qualidade-de-código)
 - [Resultados observados](#resultados-observados)
 - [Consultas e dashboard](#consultas-e-dashboard)
+- [Histórico de versões](CHANGELOG.md)
 - [Limitações](#limitações)
 - [Licença](#licença)
 
@@ -37,7 +39,7 @@ O processamento é **Full Refresh**: cada execução consulta o SGS desde `01/01
 | [4390](https://api.bcb.gov.br/dados/serie/bcdata.sgs.4390/dados?formato=json) | `selic_mensal` | mensal | % a.m. |
 | [13522](https://api.bcb.gov.br/dados/serie/bcdata.sgs.13522/dados?formato=json) | `ipca_12_meses` | mensal | % |
 
-Python, `requests` (retry HTTP), PySpark via `databricks-connect`, Delta Lake, Unity Catalog e `pytest`. As versões de dependências estão fixadas em `requirements.txt`. Os resultados dependem da disponibilidade e de revisões dos dados públicos do SGS.
+Python, `requests` (retry HTTP), PySpark via `databricks-connect`, Delta Lake, Unity Catalog e `pytest`. As versões das dependências diretas estão fixadas em `requirements.txt`; as transitivas não têm lockfile e podem mudar entre instalações. Os resultados dependem da disponibilidade e de revisões dos dados públicos do SGS.
 
 ## Estrutura
 
@@ -50,11 +52,14 @@ src/silver.py               Validação e Silver
 src/gold.py                 Agregações Gold
 src/pipeline.py             Orquestração sequencial e tempos
 tests/test_extract.py       Testes unitários de configuração e extração
+tests/test_pipeline.py      Testes de ordem e falha da orquestração
 sql/                       Consultas analíticas e de qualidade
 dashboards/                Definição AI/BI e implantação via SDK
 docs/                      Arquitetura, dicionário, decisões e guias
 requirements.txt            Dependências Python
+CHANGELOG.md                Histórico da release
 pytest.ini                  Descoberta de testes isolada do projeto pai
+pyrightconfig.json          Resolução de imports e análise de tipos
 ```
 
 ## Instalação e reprodução
@@ -82,20 +87,34 @@ pytest.ini                  Descoberta de testes isolada do projeto pai
 4. Verifique a conexão e rode os testes locais:
 
    ```powershell
-   python src/connection.py
+   python -m src.connection
    python -m pytest -q
    ```
 
 5. Execute o pipeline completo:
 
    ```powershell
-   python src/pipeline.py
+   python -m src.pipeline
    ```
 
    A execução cria os esquemas `workspace.bcb_bronze`, `workspace.bcb_silver` e `workspace.bcb_gold`, além das seis tabelas. Reexecutar substitui os dados existentes. A API é pública e não precisa de credencial própria. O endpoint pode limitar requisições ou estar indisponível; `src/extract.py` aplica até três tentativas adicionais para os códigos HTTP configurados e timeout de 60 segundos por chamada.
 6. No editor SQL do Databricks, selecione um SQL warehouse com acesso ao catálogo `workspace` e execute, por consulta, `sql/economic_indicators.sql` e `sql/data_quality.sql`. As consultas de validação ajudam a conferir a execução atual; as contagens históricas abaixo não são garantidas em nova execução.
 
-Os quatro testes em `tests/test_extract.py` usam resposta HTTP simulada. Eles verificam configuração, resposta válida, resposta vazia e preservação de valor negativo; **não são testes de integração** com o SGS ou com o Databricks. Executar o pipeline é a verificação de integração operacional. O arquivo `pytest.ini` impede que a configuração de testes dependa de um diretório pai.
+Os quatro testes em `tests/test_extract.py` usam resposta HTTP simulada. Eles verificam configuração, resposta válida, resposta vazia e preservação de valor negativo. Os dois testes em `tests/test_pipeline.py` verificam a ordem Bronze → Silver → Gold e a liberação da sessão em caso de falha. **Não são testes de integração** com o SGS ou com o Databricks. Executar o pipeline é a verificação de integração operacional. `pytest.ini` e `pyrightconfig.json` resolvem importações a partir da raiz deste repositório; a execução não depende de configurações da pasta `databricks-lab`. Para executar uma camada isoladamente, use `python -m src.bronze`, `python -m src.silver` ou `python -m src.gold` a partir da raiz.
+
+## Qualidade de código
+
+Para conferir a release no ambiente virtual do projeto, instale Pylint, Ruff e Pyright como ferramentas de desenvolvimento e execute:
+
+```powershell
+python -m pylint src tests dashboards --persistent=n
+python -m ruff check src tests --select E,F,I
+python -m ruff format --check src tests
+python -m pyright
+python -m pytest -q
+```
+
+Essas ferramentas não são dependências de execução em `requirements.txt`. O diretório `Microsoft/` presente em algumas instalações é um cache de análise de módulos do PowerShell; ele e os demais caches locais são ignorados pelo Git.
 
 ## Resultados observados
 
@@ -108,7 +127,7 @@ Execução informada e validada em **26/11/2026**, no Databricks Free Edition:
 | Rejeitados / duplicidades removidas | 0 / 0 |
 | Aproveitamento nas regras implementadas | 100% |
 | `monthly_indicators` / `latest_indicators` / `economic_features` | 413 / 5 / 83 |
-| Testes unitários aprovados | 4 |
+| Testes automatizados aprovados na revisão v1.0.0 | 6 |
 | Bronze / Silver / Gold | 6,53 s / 8,89 s / 9,85 s |
 | Tempo total | 26,96 s |
 
@@ -116,7 +135,7 @@ Detalhes e escopo das medições: [relatório de execução](docs/execution_repo
 
 ## Consultas e dashboard
 
-As consultas Gold estão em [indicadores econômicos](sql/economic_indicators.sql); verificações sobre as seis tabelas estão em [qualidade de dados](sql/data_quality.sql). O dashboard **Brazil Economic Monitor** possui duas páginas: **Economic Overview** e **Data Quality**. A definição exportável está em [brazil_economic_monitor.lvdash.json](dashboards/brazil_economic_monitor.lvdash.json). Para validá-lo e implantá-lo no perfil `DEFAULT`, execute `python dashboards/deploy_dashboard.py`; o script usa um SQL Warehouse serverless `2X-Small` já existente, valida as 15 consultas dos arquivos SQL e os nove datasets do dashboard e cria ou atualiza um rascunho. Use `--validate-only` para executar apenas a validação. Consulte o [guia de implantação](docs/dashboard_setup.md) para requisitos e limitações. A URL é impressa ao final; identificadores do workspace não são armazenados no repositório.
+As consultas Gold estão em [indicadores econômicos](sql/economic_indicators.sql); verificações sobre as seis tabelas estão em [qualidade de dados](sql/data_quality.sql). O dashboard **Brazil Economic Monitor** possui duas páginas: **Economic Overview** e **Data Quality**. A definição exportável está em [brazil_economic_monitor.lvdash.json](dashboards/brazil_economic_monitor.lvdash.json). Para validá-lo e implantá-lo no perfil `DEFAULT`, execute `python -m dashboards.deploy_dashboard`; o script usa um SQL Warehouse serverless `2X-Small` já existente, valida as 15 consultas dos arquivos SQL e os nove datasets do dashboard e cria ou atualiza um rascunho. Use `--validate-only` para executar apenas a validação. Consulte o [guia de implantação](docs/dashboard_setup.md) para requisitos e limitações. A URL é impressa ao final; identificadores do workspace não são armazenados no repositório.
 
 
 ## Dashboard - Brazil Economic Monitor
