@@ -1,0 +1,1007 @@
+{
+  "datasets": [
+    {
+      "name": "ds_latest",
+      "displayName": "Indicadores mais recentes",
+      "queryLines": [
+        "SELECT codigo_serie, indicador, data, valor, unidade FROM latest_indicators ORDER BY codigo_serie"
+      ]
+    },
+    {
+      "name": "ds_features",
+      "displayName": "Séries mensais",
+      "queryLines": [
+        "SELECT mes, meta_selic, ipca_mensal, dolar_medio, ipca_12_meses FROM economic_features ORDER BY mes"
+      ]
+    },
+    {
+      "name": "ds_quality",
+      "displayName": "Resumo de qualidade",
+      "queryLines": [
+        "SELECT b.total AS bronze, s.total AS silver, r.total AS rejeitados, ",
+        "b.total - s.total - r.total AS duplicidades_removidas, ",
+        "CASE WHEN b.total = 0 THEN NULL ELSE CAST(s.total AS DOUBLE) / b.total END AS aproveitamento ",
+        "FROM (SELECT COUNT(*) AS total FROM workspace.bcb_bronze.sgs_raw) b ",
+        "CROSS JOIN (SELECT COUNT(*) AS total FROM workspace.bcb_silver.economic_indicators) s ",
+        "CROSS JOIN (SELECT COUNT(*) AS total FROM workspace.bcb_silver.data_quality) r"
+      ]
+    },
+    {
+      "name": "ds_distribution",
+      "displayName": "Registros por indicador",
+      "queryLines": [
+        "SELECT indicador, COUNT(*) AS registros FROM workspace.bcb_silver.economic_indicators GROUP BY indicador ORDER BY indicador"
+      ]
+    },
+    {
+      "name": "ds_freshness",
+      "displayName": "Atualização por indicador",
+      "queryLines": [
+        "SELECT indicador, frequencia, unidade, MAX(data) AS ultima_observacao, MAX(extraido_em) AS ultima_extracao, ",
+        "DATEDIFF(CURRENT_DATE(), MAX(data)) AS dias_desde_observacao ",
+        "FROM workspace.bcb_silver.economic_indicators GROUP BY indicador, frequencia, unidade ORDER BY indicador"
+      ]
+    },
+    {
+      "name": "ds_sel",
+      "displayName": "Último valor SGS 432",
+      "queryLines": [
+        "SELECT valor, data, unidade FROM latest_indicators WHERE codigo_serie = 432"
+      ]
+    },
+    {
+      "name": "ds_ipca",
+      "displayName": "Último valor SGS 433",
+      "queryLines": [
+        "SELECT valor, data, unidade FROM latest_indicators WHERE codigo_serie = 433"
+      ]
+    },
+    {
+      "name": "ds_dolar",
+      "displayName": "Último valor SGS 1",
+      "queryLines": [
+        "SELECT valor, data, unidade FROM latest_indicators WHERE codigo_serie = 1"
+      ]
+    },
+    {
+      "name": "ds_ipca12",
+      "displayName": "Último valor SGS 13522",
+      "queryLines": [
+        "SELECT valor, data, unidade FROM latest_indicators WHERE codigo_serie = 13522"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "economic_overview",
+      "displayName": "Economic Overview",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "economic-title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Economic Overview\n\nIndicadores do Banco Central do Brasil · valores mais recentes e evolução mensal. Mês corrente pode estar incompleto."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "selic-card",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_sel",
+                  "fields": [
+                    {
+                      "name": "valor",
+                      "expression": "`valor`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "valor",
+                  "displayName": "Meta Selic · % a.a.",
+                  "format": {
+                    "type": "number",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Meta Selic · % a.a."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ipca-card",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ipca",
+                  "fields": [
+                    {
+                      "name": "valor",
+                      "expression": "`valor`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "valor",
+                  "displayName": "IPCA mensal · % a.m.",
+                  "format": {
+                    "type": "number",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "IPCA mensal · % a.m."
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "dolar-card",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_dolar",
+                  "fields": [
+                    {
+                      "name": "valor",
+                      "expression": "`valor`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "valor",
+                  "displayName": "Dólar comercial · BRL/USD",
+                  "format": {
+                    "type": "number",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Dólar comercial · BRL/USD"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ipca12-card",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_ipca12",
+                  "fields": [
+                    {
+                      "name": "valor",
+                      "expression": "`valor`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "valor",
+                  "displayName": "IPCA 12 meses · %",
+                  "format": {
+                    "type": "number",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "IPCA 12 meses · %"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "reference-dates",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_latest",
+                  "fields": [
+                    {
+                      "name": "indicador",
+                      "expression": "`indicador`"
+                    },
+                    {
+                      "name": "data",
+                      "expression": "`data`"
+                    },
+                    {
+                      "name": "valor",
+                      "expression": "`valor`"
+                    },
+                    {
+                      "name": "unidade",
+                      "expression": "`unidade`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "indicador",
+                    "displayName": "Indicador"
+                  },
+                  {
+                    "fieldName": "data",
+                    "displayName": "Data da observação"
+                  },
+                  {
+                    "fieldName": "valor",
+                    "displayName": "Valor"
+                  },
+                  {
+                    "fieldName": "unidade",
+                    "displayName": "Unidade"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Datas de referência"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "selic-history",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_features",
+                  "fields": [
+                    {
+                      "name": "mes",
+                      "expression": "`mes`"
+                    },
+                    {
+                      "name": "meta_selic",
+                      "expression": "`meta_selic`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "mes",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "meta_selic",
+                  "displayName": "Meta Selic · % a.a.",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Meta Selic · % a.a."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 10,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "ipca-bars",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_features",
+                  "fields": [
+                    {
+                      "name": "mes",
+                      "expression": "`mes`"
+                    },
+                    {
+                      "name": "ipca_mensal",
+                      "expression": "`ipca_mensal`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "mes",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "ipca_mensal",
+                  "displayName": "IPCA mensal · % a.m.",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "IPCA mensal · % a.m."
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 10,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "dolar-history",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_features",
+                  "fields": [
+                    {
+                      "name": "mes",
+                      "expression": "`mes`"
+                    },
+                    {
+                      "name": "dolar_medio",
+                      "expression": "`dolar_medio`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "mes",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "dolar_medio",
+                  "displayName": "Dólar médio · BRL/USD",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Dólar médio · BRL/USD"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 15,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "ipca12-history",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_features",
+                  "fields": [
+                    {
+                      "name": "mes",
+                      "expression": "`mes`"
+                    },
+                    {
+                      "name": "ipca_12_meses",
+                      "expression": "`ipca_12_meses`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "mes",
+                  "scale": {
+                    "type": "temporal"
+                  }
+                },
+                "y": {
+                  "fieldName": "ipca_12_meses",
+                  "displayName": "IPCA 12 meses · %",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "IPCA 12 meses · %"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 15,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "period-filter",
+            "queries": [
+              {
+                "name": "dates",
+                "query": {
+                  "datasetName": "ds_features",
+                  "fields": [
+                    {
+                      "name": "mes",
+                      "expression": "`mes`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "mes",
+                    "queryName": "dates"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Período dos gráficos"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 20,
+            "width": 4,
+            "height": 2
+          }
+        }
+      ]
+    },
+    {
+      "name": "data_quality",
+      "displayName": "Data Quality",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "quality-title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Data Quality\n\nReconciliação da última execução disponível. Diferenças podem indicar duplicidades ou camadas em execuções distintas."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "bronze-card",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_quality",
+                  "fields": [
+                    {
+                      "name": "bronze",
+                      "expression": "`bronze`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "bronze",
+                  "displayName": "Registros Bronze"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Registros Bronze"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "silver-card",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_quality",
+                  "fields": [
+                    {
+                      "name": "silver",
+                      "expression": "`silver`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "silver",
+                  "displayName": "Registros Silver"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Registros Silver"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "rejected-card",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_quality",
+                  "fields": [
+                    {
+                      "name": "rejeitados",
+                      "expression": "`rejeitados`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "rejeitados",
+                  "displayName": "Rejeitados"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Rejeitados"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "duplicates-card",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_quality",
+                  "fields": [
+                    {
+                      "name": "duplicidades_removidas",
+                      "expression": "`duplicidades_removidas`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "duplicidades_removidas",
+                  "displayName": "Duplicidades removidas"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Duplicidades removidas"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "yield-card",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_quality",
+                  "fields": [
+                    {
+                      "name": "aproveitamento",
+                      "expression": "`aproveitamento`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "aproveitamento",
+                  "displayName": "Taxa de aproveitamento",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Taxa de aproveitamento"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "distribution-chart",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_distribution",
+                  "fields": [
+                    {
+                      "name": "indicador",
+                      "expression": "`indicador`"
+                    },
+                    {
+                      "name": "registros",
+                      "expression": "`registros`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "indicador",
+                  "scale": {
+                    "type": "categorical"
+                  }
+                },
+                "y": {
+                  "fieldName": "registros",
+                  "displayName": "Registros por indicador",
+                  "scale": {
+                    "type": "quantitative"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Registros por indicador"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "freshness-table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ds_freshness",
+                  "fields": [
+                    {
+                      "name": "indicador",
+                      "expression": "`indicador`"
+                    },
+                    {
+                      "name": "frequencia",
+                      "expression": "`frequencia`"
+                    },
+                    {
+                      "name": "unidade",
+                      "expression": "`unidade`"
+                    },
+                    {
+                      "name": "ultima_observacao",
+                      "expression": "`ultima_observacao`"
+                    },
+                    {
+                      "name": "ultima_extracao",
+                      "expression": "`ultima_extracao`"
+                    },
+                    {
+                      "name": "dias_desde_observacao",
+                      "expression": "`dias_desde_observacao`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "indicador",
+                    "displayName": "Indicador"
+                  },
+                  {
+                    "fieldName": "frequencia",
+                    "displayName": "Frequência"
+                  },
+                  {
+                    "fieldName": "unidade",
+                    "displayName": "Unidade"
+                  },
+                  {
+                    "fieldName": "ultima_observacao",
+                    "displayName": "Última observação"
+                  },
+                  {
+                    "fieldName": "ultima_extracao",
+                    "displayName": "Última extração"
+                  },
+                  {
+                    "fieldName": "dias_desde_observacao",
+                    "displayName": "Dias desde observação"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Atualização das fontes"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 12,
+            "height": 5
+          }
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#F5F8FC",
+        "dark": "#101E2D"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#172B3D"
+      },
+      "widgetBorderColor": {
+        "light": "#FFFFFF",
+        "dark": "#172B3D"
+      },
+      "fontColor": {
+        "light": "#12304A",
+        "dark": "#F1F5F9"
+      },
+      "selectionColor": {
+        "light": "#147D64",
+        "dark": "#55C7A1"
+      },
+      "visualizationColors": [
+        "#173B5E",
+        "#1F6D8A",
+        "#22856B",
+        "#57A689",
+        "#76A8C8",
+        "#A3C9B8"
+      ],
+      "widgetHeaderAlignment": "LEFT"
+    }
+  }
+}
